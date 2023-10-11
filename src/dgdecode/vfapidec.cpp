@@ -106,34 +106,28 @@ int CMPEG2Decoder::Open(const char *path)
         Infilename[File_Limit-i][strlen(Infilename[File_Limit-i])-1] = 0;
         if (PathIsRelative(Infilename[File_Limit-i]))
         {
-            char *p, d2v_stem[_MAX_PATH], open_path[_MAX_PATH];
+			char open_path[_MAX_PATH] = { 0 };
+			char curr_dir[_MAX_PATH]  = { 0 };
 
             if (PathIsRelative(path))
             {
-                GetCurrentDirectory(_MAX_PATH, d2v_stem);
-                if (*(d2v_stem + strlen(d2v_stem) - 1) != '\\')
-                    strcat(d2v_stem, "\\");
-                strcat(d2v_stem, path);
+				if (GetCurrentDirectory(_MAX_PATH, curr_dir) == 0)
+					return 3;
             }
             else
             {
-                strcpy(d2v_stem, path);
+				if (strcpy_s(curr_dir, path) != 0)
+					return 3;
+				if (!PathRemoveFileSpec(curr_dir))
+					return 3;
             }
-            p = d2v_stem + strlen(d2v_stem);
-            while (*p != '\\' && p != d2v_stem) p--;
-            if (p != d2v_stem)
-            {
-                p[1] = 0;
-                strcat(d2v_stem, Infilename[File_Limit-i]);
-                PathCanonicalize(open_path, d2v_stem);
-                if ((Infile[File_Limit-i] = _open(open_path, _O_RDONLY | _O_BINARY))==-1)
-                    return 3;
-            }
-            else
-            {
-                // This should never happen because the code should guarantee that d2v_stem has a '\' character.
+
+			if (!PathCombine(open_path, curr_dir, Infilename[File_Limit - i]))
+				return 3;
+			if (!PathCanonicalize(open_path, open_path))
+				return 3;
+            if ((Infile[File_Limit-i] = _open(open_path, _O_RDONLY | _O_BINARY))==-1)
                 return 3;
-            }
         }
         else
         {
